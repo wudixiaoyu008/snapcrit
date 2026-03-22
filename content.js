@@ -522,13 +522,13 @@
     const sections = Object.entries(grouped).map(([url, { title, items }]) => {
       const rows = items.map((n, i) => `
         <tr>
-          <td style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
+          <td width="50%" style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
             ${n.screenshot
-              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" style="width:100%;height:auto;display:block;" />`
+              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" width="100%" style="max-width:100%;height:auto;display:block;" />`
               : '<span style="font-size:12px;color:#9ca3af;">No capture</span>'}
           </td>
-          <td style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
-            <span style="display:inline-block;width:20px;height:20px;background:#111827;color:#fff;border-radius:50%;font-size:11px;font-weight:700;text-align:center;line-height:20px;margin-right:8px;">${i + 1}</span>${esc(n.note)}
+          <td width="50%" style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
+            ${esc(n.note)}
           </td>
         </tr>`).join('');
 

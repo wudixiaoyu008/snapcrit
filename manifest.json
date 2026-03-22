@@ -3,7 +3,7 @@
   "name": "Feedback Capture",
   "version": "1.0.0",
   "description": "Capture design feedback on any live prototype. Select elements, add notes, export a clean report.",
-  "permissions": ["storage", "scripting", "tabs"],
+  "permissions": ["storage", "scripting", "tabs", "unlimitedStorage"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

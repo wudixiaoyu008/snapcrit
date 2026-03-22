@@ -8,15 +8,17 @@
   const ACTIVE_KEY = 'fc_active';
 
   let isActive = false;
-  let mode = 'idle';
+  let mode = 'idle'; // 'idle' | 'select-element' | 'full-page'
+  let selectListenersActive = false;
   let toolbarHost = null;
   let toolbarShadow = null;
   let popupHost = null;
   let popupShadow = null;
   let highlightEl = null;
   let pendingScreenshot = null;
+  let localNotes = []; // in-memory primary store, persisted to session storage for cross-page
 
-  // Auto-activate if session is marked active (e.g. user navigated to new page)
+  // Auto-activate if session is marked active (user navigated to a new page)
   chrome.storage.session.get(ACTIVE_KEY, (result) => {
     if (result[ACTIVE_KEY]) activate();
   });
@@ -30,20 +32,26 @@
 
   // ─── Activation ────────────────────────────────────────────────────────────
 
-  function activate() {
+  async function activate() {
     if (isActive) return;
     isActive = true;
     chrome.storage.session.set({ [ACTIVE_KEY]: true });
+    // Sync notes from previous pages in this session
+    localNotes = await getStoredNotes();
     injectToolbar();
+    updateNoteCount(localNotes.length);
   }
 
   function deactivate() {
-    setMode('idle');
+    if (selectListenersActive) removeSelectListeners();
     removeNotePopup();
     removeHighlight();
     if (toolbarHost) { toolbarHost.remove(); toolbarHost = null; toolbarShadow = null; }
     document.body.style.cursor = '';
+    mode = 'idle';
+    selectListenersActive = false;
     isActive = false;
+    localNotes = [];
     window.__feedbackCapture = false;
     chrome.storage.session.remove([ACTIVE_KEY, STORAGE_KEY]);
   }
@@ -110,50 +118,24 @@
     return `
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       .toolbar {
-        display: flex;
-        align-items: center;
-        gap: 3px;
+        display: flex; align-items: center; gap: 3px;
         background: rgba(255,255,255,0.97);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(0,0,0,0.08);
-        border-radius: 12px;
-        padding: 5px 6px;
+        backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 5px 6px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-size: 13px;
-        color: #18181b;
-        white-space: nowrap;
-        user-select: none;
+        font-size: 13px; color: #18181b; white-space: nowrap; user-select: none;
       }
       .btn {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        border: none;
-        border-radius: 7px;
-        background: transparent;
-        color: #18181b;
-        font-size: 13px;
-        font-family: inherit;
-        cursor: pointer;
-        transition: background 0.1s;
-        outline: none;
-        line-height: 1;
+        display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+        border: none; border-radius: 7px; background: transparent; color: #18181b;
+        font-size: 13px; font-family: inherit; cursor: pointer;
+        transition: background 0.1s; outline: none; line-height: 1;
       }
       .btn:hover { background: rgba(0,0,0,0.06); }
       .btn:active { background: rgba(0,0,0,0.09); }
-      .mode-btn.active {
-        background: rgba(37,99,235,0.09);
-        color: #2563eb;
-        font-weight: 500;
-      }
-      .export-btn {
-        background: #18181b;
-        color: #fff;
-        font-weight: 500;
-      }
+      .mode-btn.active { background: rgba(37,99,235,0.09); color: #2563eb; font-weight: 500; }
+      .export-btn { background: #18181b; color: #fff; font-weight: 500; }
       .export-btn:hover { background: #27272a; }
       .exit-btn { color: #71717a; }
       .sep { width: 1px; height: 16px; background: rgba(0,0,0,0.09); margin: 0 2px; }
@@ -168,40 +150,50 @@
   }
 
   function setMode(newMode) {
-    const prev = mode;
+    // Clean up current mode first
+    if (selectListenersActive) removeSelectListeners();
+    removeNotePopup();
+    removeHighlight();
+
     mode = newMode;
-
-    if (toolbarShadow) {
-      const sBtn = toolbarShadow.getElementById('btn-select');
-      const fBtn = toolbarShadow.getElementById('btn-fullpage');
-      if (sBtn) sBtn.classList.toggle('active', mode === 'select-element');
-      if (fBtn) fBtn.classList.toggle('active', mode === 'full-page');
-    }
-
-    if (prev === 'select-element') {
-      document.removeEventListener('mouseover', onMouseOver, true);
-      document.removeEventListener('mouseout', onMouseOut, true);
-      document.removeEventListener('click', onElementClick, true);
-      document.body.style.cursor = '';
-      removeHighlight();
-    }
+    updateModeButtons();
 
     if (mode === 'select-element') {
-      document.addEventListener('mouseover', onMouseOver, true);
-      document.addEventListener('mouseout', onMouseOut, true);
-      document.addEventListener('click', onElementClick, true);
-      document.body.style.cursor = 'crosshair';
+      addSelectListeners();
     } else if (mode === 'full-page') {
-      removeNotePopup();
       triggerFullPageCapture();
     }
+  }
+
+  function updateModeButtons() {
+    if (!toolbarShadow) return;
+    const sBtn = toolbarShadow.getElementById('btn-select');
+    const fBtn = toolbarShadow.getElementById('btn-fullpage');
+    if (sBtn) sBtn.classList.toggle('active', mode === 'select-element');
+    if (fBtn) fBtn.classList.toggle('active', mode === 'full-page');
+  }
+
+  function addSelectListeners() {
+    document.addEventListener('mouseover', onMouseOver, true);
+    document.addEventListener('mouseout', onMouseOut, true);
+    document.addEventListener('click', onElementClick, true);
+    document.body.style.cursor = 'crosshair';
+    selectListenersActive = true;
+  }
+
+  function removeSelectListeners() {
+    document.removeEventListener('mouseover', onMouseOver, true);
+    document.removeEventListener('mouseout', onMouseOut, true);
+    document.removeEventListener('click', onElementClick, true);
+    document.body.style.cursor = '';
+    selectListenersActive = false;
   }
 
   // ─── Element picker ────────────────────────────────────────────────────────
 
   function onMouseOver(e) {
     if (isOwnEl(e.target)) return;
-    showHighlight(e.target);
+    showHighlight(e.target.getBoundingClientRect());
   }
 
   function onMouseOut(e) {
@@ -217,15 +209,13 @@
   }
 
   function isOwnEl(el) {
-    if (!el) return false;
-    const path = el.closest ? null : null;
     return el === toolbarHost || el === popupHost || el === highlightEl;
   }
 
   // ─── Highlight ─────────────────────────────────────────────────────────────
 
-  function showHighlight(el) {
-    const rect = el.getBoundingClientRect();
+  // Accepts a DOMRect or plain {top, left, width, height} object
+  function showHighlight(rect) {
     if (!highlightEl) {
       highlightEl = document.createElement('div');
       highlightEl.id = '__fc-highlight';
@@ -256,23 +246,46 @@
   // ─── Capture ───────────────────────────────────────────────────────────────
 
   async function triggerElementCapture(el) {
-    setMode('idle');
+    // Pause hover/click listeners during capture — but keep mode = 'select-element'
+    // so we can resume after the popup is dismissed
+    removeSelectListeners();
+    removeHighlight();
+
     const rect = el.getBoundingClientRect();
     const screenshot = await captureAndCrop(rect);
     pendingScreenshot = screenshot;
-    showNotePopup(rect, false);
+
+    // Show the selected element highlighted while popup is open
+    showHighlight(rect);
+
+    showNotePopup(rect, false, function onDismiss() {
+      removeHighlight();
+      // Resume select-element mode if it's still the active mode
+      if (mode === 'select-element') {
+        addSelectListeners();
+      }
+    });
   }
 
   async function triggerFullPageCapture() {
     const rect = { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight };
+
     const screenshot = await captureAndCrop(rect);
     pendingScreenshot = screenshot;
-    setMode('idle');
-    showNotePopup(null, true);
+
+    // Show viewport highlight while popup is open
+    showHighlight(rect);
+
+    showNotePopup(null, true, function onDismiss() {
+      removeHighlight();
+      // Full page is one-shot: return to idle after dismiss
+      mode = 'idle';
+      updateModeButtons();
+    });
   }
 
   async function captureAndCrop(rect) {
-    // Hide extension UI before capture
+    // Hide extension UI before capture so it doesn't appear in the screenshot
     if (toolbarHost) toolbarHost.style.visibility = 'hidden';
     if (highlightEl) highlightEl.style.display = 'none';
     if (popupHost) popupHost.style.visibility = 'hidden';
@@ -281,6 +294,7 @@
 
     const dataUrl = await new Promise((resolve) => {
       chrome.runtime.sendMessage({ action: 'captureTab' }, (res) => {
+        if (chrome.runtime.lastError) { resolve(null); return; }
         resolve(res?.dataUrl || null);
       });
     });
@@ -317,7 +331,7 @@
 
   // ─── Note popup ────────────────────────────────────────────────────────────
 
-  function showNotePopup(rect, isFullPage) {
+  function showNotePopup(rect, isFullPage, onDismiss) {
     removeNotePopup();
 
     popupHost = document.createElement('div');
@@ -326,10 +340,11 @@
     const W = 264, H = 154, MARGIN = 10;
     let top, left;
 
-    if (isFullPage) {
+    if (isFullPage || !rect) {
       top = window.innerHeight / 2 - H / 2;
       left = window.innerWidth / 2 - W / 2;
     } else {
+      // Prefer below element; fall back to above if not enough space
       top = rect.bottom + MARGIN + H < window.innerHeight
         ? rect.bottom + MARGIN
         : rect.top - H - MARGIN;
@@ -346,7 +361,6 @@
     });
 
     popupShadow = popupHost.attachShadow({ mode: 'open' });
-
     const style = document.createElement('style');
     style.textContent = getPopupCSS();
     popupShadow.appendChild(style);
@@ -374,20 +388,21 @@
     const textarea = popupShadow.getElementById('note-input');
     textarea.focus();
 
-    popupShadow.getElementById('btn-save').addEventListener('click', () => {
+    const dismiss = (doSave) => {
       const val = textarea.value.trim();
-      if (val) saveNote(val);
-      else removeNotePopup();
-    });
-
-    popupShadow.getElementById('btn-close').addEventListener('click', removeNotePopup);
-
-    textarea.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-        const val = textarea.value.trim();
-        if (val) saveNote(val);
+      if (doSave && val) {
+        saveNote(val, onDismiss);
+      } else {
+        removeNotePopup();
+        if (onDismiss) onDismiss();
       }
-      if (e.key === 'Escape') removeNotePopup();
+    };
+
+    popupShadow.getElementById('btn-save').addEventListener('click', () => dismiss(true));
+    popupShadow.getElementById('btn-close').addEventListener('click', () => dismiss(false));
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) dismiss(true);
+      if (e.key === 'Escape') dismiss(false);
     });
   }
 
@@ -395,73 +410,35 @@
     return `
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       .popup {
-        background: #fff;
-        border: 1px solid rgba(0,0,0,0.10);
-        border-radius: 10px;
+        background: #fff; border: 1px solid rgba(0,0,0,0.10); border-radius: 10px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-size: 13px;
-        overflow: hidden;
+        font-size: 13px; overflow: hidden;
       }
       .popup-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 9px 12px 7px;
-        border-bottom: 1px solid rgba(0,0,0,0.06);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 9px 12px 7px; border-bottom: 1px solid rgba(0,0,0,0.06);
       }
-      .label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #a1a1aa;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
+      .label { font-size: 11px; font-weight: 600; color: #a1a1aa; text-transform: uppercase; letter-spacing: 0.05em; }
       .close-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 20px;
-        height: 20px;
-        border: none;
-        background: none;
-        color: #a1a1aa;
-        cursor: pointer;
-        border-radius: 4px;
-        padding: 0;
+        display: flex; align-items: center; justify-content: center;
+        width: 20px; height: 20px; border: none; background: none;
+        color: #a1a1aa; cursor: pointer; border-radius: 4px; padding: 0;
       }
       .close-btn:hover { background: rgba(0,0,0,0.06); color: #18181b; }
       .textarea {
-        width: 100%;
-        padding: 10px 12px;
-        border: none;
-        outline: none;
-        resize: none;
-        font-family: inherit;
-        font-size: 13px;
-        color: #18181b;
-        line-height: 1.5;
-        background: #fff;
-        height: 72px;
+        width: 100%; padding: 10px 12px; border: none; outline: none; resize: none;
+        font-family: inherit; font-size: 13px; color: #18181b; line-height: 1.5;
+        background: #fff; height: 72px;
       }
       .popup-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 7px 12px;
-        border-top: 1px solid rgba(0,0,0,0.06);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 7px 12px; border-top: 1px solid rgba(0,0,0,0.06);
       }
       .hint { font-size: 11px; color: #a1a1aa; }
       .save-btn {
-        background: #18181b;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 5px 14px;
-        font-size: 12px;
-        font-weight: 500;
-        font-family: inherit;
-        cursor: pointer;
+        background: #18181b; color: #fff; border: none; border-radius: 6px;
+        padding: 5px 14px; font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer;
       }
       .save-btn:hover { background: #27272a; }
     `;
@@ -473,20 +450,20 @@
 
   // ─── Storage ───────────────────────────────────────────────────────────────
 
-  async function saveNote(noteText) {
+  function saveNote(noteText, onDone) {
     removeNotePopup();
-    const note = {
+    localNotes.push({
       url: window.location.href,
       pageTitle: document.title,
       screenshot: pendingScreenshot,
       note: noteText,
       timestamp: Date.now(),
-    };
-    const stored = await getStoredNotes();
-    stored.push(note);
-    await chrome.storage.session.set({ [STORAGE_KEY]: stored });
+    });
+    // Persist async for cross-page access — don't block on it
+    chrome.storage.session.set({ [STORAGE_KEY]: localNotes });
     pendingScreenshot = null;
-    updateNoteCount(stored.length);
+    updateNoteCount(localNotes.length);
+    if (onDone) onDone();
   }
 
   function getStoredNotes() {
@@ -503,9 +480,8 @@
 
   // ─── Export ────────────────────────────────────────────────────────────────
 
-  async function handleExport() {
-    const notes = await getStoredNotes();
-    if (!notes.length) {
+  function handleExport() {
+    if (!localNotes.length) {
       if (toolbarShadow) {
         const el = toolbarShadow.getElementById('note-count');
         if (el) {
@@ -517,8 +493,10 @@
       }
       return;
     }
-    const html = buildReport(notes);
-    downloadHTML(html);
+    const html = buildReport(localNotes);
+    const filename = `feedback-${new Date().toISOString().slice(0, 10)}.html`;
+    // Route through background: blob URLs can't cross content script → service worker contexts
+    chrome.runtime.sendMessage({ action: 'openReport', html, filename });
   }
 
   function buildReport(notes) {
@@ -574,7 +552,7 @@ section{margin-bottom:48px}
 .page-url{font-size:12px;color:#2563eb;text-decoration:none;word-break:break-all;opacity:.8}
 .page-url:hover{opacity:1;text-decoration:underline}
 .notes{display:flex;flex-direction:column;gap:12px}
-.note-row{display:flex;gap:0;background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;min-height:110px}
+.note-row{display:flex;background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;min-height:110px}
 .note-img{flex:0 0 220px;background:#f4f4f5;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .note-img img{width:100%;height:100%;object-fit:contain;display:block}
 .no-img{font-size:12px;color:#a1a1aa}
@@ -596,25 +574,13 @@ ${sections}
 </html>`;
   }
 
-  function downloadHTML(html) {
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `feedback-${new Date().toISOString().slice(0,10)}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
   // ─── Utils ─────────────────────────────────────────────────────────────────
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function esc(str) {
     return String(str || '')
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
 })();

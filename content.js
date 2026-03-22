@@ -316,16 +316,23 @@
       const img = new Image();
       img.onload = () => {
         const dpr = window.devicePixelRatio || 1;
+        const srcX = Math.round(rect.left * dpr);
+        const srcY = Math.round(rect.top * dpr);
+        const srcW = Math.round(rect.width * dpr);
+        const srcH = Math.round(rect.height * dpr);
+
+        // Cap output at 480px wide so Google Docs renders it at a natural size
+        // that fits within a table column without overflowing
+        const MAX_W = 480;
+        const scale = srcW > MAX_W ? MAX_W / srcW : 1;
+        const destW = Math.round(srcW * scale);
+        const destH = Math.round(srcH * scale);
+
         const canvas = document.createElement('canvas');
-        canvas.width = Math.round(rect.width * dpr);
-        canvas.height = Math.round(rect.height * dpr);
+        canvas.width = destW;
+        canvas.height = destH;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(
-          img,
-          Math.round(rect.left * dpr), Math.round(rect.top * dpr),
-          Math.round(rect.width * dpr), Math.round(rect.height * dpr),
-          0, 0, canvas.width, canvas.height
-        );
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, destW, destH);
         resolve(canvas.toDataURL('image/png'));
       };
       img.onerror = () => resolve(null);
@@ -522,10 +529,10 @@
     const sections = Object.entries(grouped).map(([url, { title, items }]) => {
       const rows = items.map((n, i) => `
         <tr>
-          <td width="50%" style="width:50%;padding:0;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;overflow:hidden;">
+          <td width="50%" style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
             ${n.screenshot
-              ? `<table width="100%" style="width:100%;table-layout:fixed;border-collapse:collapse;" cellpadding="0" cellspacing="0"><tr><td style="padding:12px;"><img src="${n.screenshot}" alt="Capture ${i + 1}" width="100%" style="width:100%;max-width:100%;height:auto;display:block;" /></td></tr></table>`
-              : '<span style="font-size:12px;color:#9ca3af;padding:12px;display:block;">No capture</span>'}
+              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" style="display:block;height:auto;" />`
+              : '<span style="font-size:12px;color:#9ca3af;">No capture</span>'}
           </td>
           <td width="50%" style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
             ${esc(n.note)}

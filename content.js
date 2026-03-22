@@ -19,9 +19,13 @@
   let localNotes = []; // in-memory primary store, persisted to session storage for cross-page
 
   // Auto-activate if session is marked active (user navigated to a new page)
-  chrome.storage.session.get(ACTIVE_KEY, (result) => {
-    if (result[ACTIVE_KEY]) activate();
-  });
+  // Guard against orphaned content scripts (extension reloaded, storage blocked)
+  try {
+    chrome.storage.session.get(ACTIVE_KEY, (result) => {
+      if (chrome.runtime.lastError) return; // orphaned context, ignore silently
+      if (result && result[ACTIVE_KEY]) activate();
+    });
+  } catch (_) { /* extension context invalid */ }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.action === 'activate') {
@@ -35,7 +39,7 @@
   async function activate() {
     if (isActive) return;
     isActive = true;
-    chrome.storage.session.set({ [ACTIVE_KEY]: true });
+    try { chrome.storage.session.set({ [ACTIVE_KEY]: true }); } catch (_) {}
     // Sync notes from previous pages in this session
     localNotes = await getStoredNotes();
     injectToolbar();
@@ -53,7 +57,7 @@
     isActive = false;
     localNotes = [];
     window.__feedbackCapture = false;
-    chrome.storage.session.remove([ACTIVE_KEY, STORAGE_KEY]);
+    try { chrome.storage.session.remove([ACTIVE_KEY, STORAGE_KEY]); } catch (_) {}
   }
 
   // ─── Toolbar ───────────────────────────────────────────────────────────────
@@ -460,7 +464,7 @@
       timestamp: Date.now(),
     });
     // Persist async for cross-page access — don't block on it
-    chrome.storage.session.set({ [STORAGE_KEY]: localNotes });
+    try { chrome.storage.session.set({ [STORAGE_KEY]: localNotes }); } catch (_) {}
     pendingScreenshot = null;
     updateNoteCount(localNotes.length);
     if (onDone) onDone();
@@ -468,7 +472,12 @@
 
   function getStoredNotes() {
     return new Promise((resolve) => {
-      chrome.storage.session.get(STORAGE_KEY, (r) => resolve(r[STORAGE_KEY] || []));
+      try {
+        chrome.storage.session.get(STORAGE_KEY, (r) => {
+          if (chrome.runtime.lastError) { resolve([]); return; }
+          resolve((r && r[STORAGE_KEY]) || []);
+        });
+      } catch (_) { resolve([]); }
     });
   }
 

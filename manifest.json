@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Feedback Capture",
+  "name": "SnapCrit",
   "version": "1.0.0",
-  "description": "Capture design feedback on any live prototype. Select elements, add notes, export a clean report.",
+  "description": "Capture live feedback during design crits and reviews. Select elements, add notes, export a clean report.",
   "permissions": ["storage", "scripting", "tabs", "unlimitedStorage"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Feedback Capture",
+    "default_title": "SnapCrit",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

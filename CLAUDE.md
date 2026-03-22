@@ -1,4 +1,4 @@
-# Feedback Capture — Chrome Extension
+# SnapCrit — Chrome Extension
 
 ## Purpose
 A lightweight Chrome extension for capturing design feedback during live prototype reviews. Activate it, select DOM elements or full page, add notes, export a clean HTML report (screenshot + note, side by side).

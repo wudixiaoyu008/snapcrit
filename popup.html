@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 220px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      color: #18181b;
+      background: #fff;
+      -webkit-font-smoothing: antialiased;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .logo {
+      width: 20px;
+      height: 20px;
+      background: #18181b;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo svg { display: block; }
+    h1 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #18181b;
+    }
+    .desc {
+      font-size: 12px;
+      color: #71717a;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .btn {
+      width: 100%;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.12s;
+    }
+    .btn-activate {
+      background: #18181b;
+      color: #fff;
+    }
+    .btn-activate:hover { background: #27272a; }
+    .btn-deactivate {
+      background: #f4f4f5;
+      color: #18181b;
+    }
+    .btn-deactivate:hover { background: #e4e4e7; }
+    .status {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #71717a;
+      text-align: center;
+    }
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M2 2l3 8 1.5-3.5L10 5z" fill="white"/>
+      </svg>
+    </div>
+    <h1>Feedback Capture</h1>
+  </div>
+  <p class="desc">Select elements on any page, add notes, and export a clean report.</p>
+  <button class="btn btn-activate" id="btn-main">Activate</button>
+  <p class="status" id="status"></p>
+  <script src="popup.js"></script>
+</body>
+</html>

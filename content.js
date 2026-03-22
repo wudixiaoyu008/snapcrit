@@ -321,18 +321,11 @@
         const srcW = Math.round(rect.width * dpr);
         const srcH = Math.round(rect.height * dpr);
 
-        // Cap output at 480px wide so Google Docs renders it at a natural size
-        // that fits within a table column without overflowing
-        const MAX_W = 480;
-        const scale = srcW > MAX_W ? MAX_W / srcW : 1;
-        const destW = Math.round(srcW * scale);
-        const destH = Math.round(srcH * scale);
-
         const canvas = document.createElement('canvas');
-        canvas.width = destW;
-        canvas.height = destH;
+        canvas.width = srcW;
+        canvas.height = srcH;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, destW, destH);
+        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
         resolve(canvas.toDataURL('image/png'));
       };
       img.onerror = () => resolve(null);
@@ -529,12 +522,12 @@
     const sections = Object.entries(grouped).map(([url, { title, items }]) => {
       const rows = items.map((n, i) => `
         <tr>
-          <td width="50%" style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
+          <td width="60%" style="width:60%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
             ${n.screenshot
               ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" width="100%" style="width:100%;height:auto;display:block;" />`
               : '<span style="font-size:12px;color:#9ca3af;">No capture</span>'}
           </td>
-          <td width="50%" style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
+          <td width="40%" style="width:40%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
             ${esc(n.note)}
           </td>
         </tr>`).join('');
@@ -554,14 +547,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Feedback Report — ${date}</title>
 <style>
-  body { margin: 0; padding: 40px 56px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111827; background: #fff; }
+  body { margin: 0; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111827; background: #fff; }
+  .container { max-width: 960px; margin: 0 auto; }
   @media print { body { padding: 24px; } }
 </style>
 </head>
 <body>
-<h1 style="font-size:22px;font-weight:700;margin:0 0 4px;"">Feedback Report</h1>
+<div class="container">
+<h1 style="font-size:22px;font-weight:700;margin:0 0 4px;">Feedback Report</h1>
 <p style="margin:0 0 40px;font-size:13px;color:#6b7280;">${date} · ${total} ${total === 1 ? 'note' : 'notes'}</p>
 ${sections}
+</div>
 </body>
 </html>`;
   }

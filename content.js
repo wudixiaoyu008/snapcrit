@@ -518,28 +518,26 @@
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const total = notes.length;
 
+    // Plain table layout — pastes cleanly into Google Docs
     const sections = Object.entries(grouped).map(([url, { title, items }]) => {
       const rows = items.map((n, i) => `
-        <div class="note-row">
-          <div class="note-img">
+        <tr>
+          <td style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
             ${n.screenshot
-              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" />`
-              : '<span class="no-img">No capture</span>'}
-          </div>
-          <div class="note-body">
-            <span class="note-num">${i + 1}</span>
-            <p class="note-text">${esc(n.note)}</p>
-          </div>
-        </div>`).join('');
+              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" style="width:100%;height:auto;display:block;" />`
+              : '<span style="font-size:12px;color:#9ca3af;">No capture</span>'}
+          </td>
+          <td style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
+            <span style="display:inline-block;width:20px;height:20px;background:#111827;color:#fff;border-radius:50%;font-size:11px;font-weight:700;text-align:center;line-height:20px;margin-right:8px;">${i + 1}</span>${esc(n.note)}
+          </td>
+        </tr>`).join('');
 
       return `
-        <section>
-          <div class="page-meta">
-            <span class="page-title">${esc(title || 'Untitled Page')}</span>
-            <a class="page-url" href="${esc(url)}" target="_blank">${esc(url)}</a>
-          </div>
-          <div class="notes">${rows}</div>
-        </section>`;
+        <p style="margin:32px 0 6px;font-size:15px;font-weight:600;color:#111827;">${esc(title || 'Untitled Page')}</p>
+        <p style="margin:0 0 12px;font-size:12px;color:#6b7280;">${esc(url)}</p>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:40px;">
+          ${rows}
+        </table>`;
     }).join('');
 
     return `<!DOCTYPE html>
@@ -549,36 +547,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Feedback Report — ${date}</title>
 <style>
-*,*::before,*::after{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',sans-serif;font-size:14px;color:#18181b;background:#f9f9f9;-webkit-font-smoothing:antialiased}
-.report-header{background:#fff;border-bottom:1px solid #e4e4e7;padding:36px 56px}
-.report-title{font-size:24px;font-weight:700;margin:0 0 6px;letter-spacing:-.01em}
-.report-meta{font-size:13px;color:#71717a;margin:0}
-.report-body{max-width:880px;margin:0 auto;padding:40px 56px}
-section{margin-bottom:48px}
-.page-meta{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e4e4e7}
-.page-title{display:block;font-size:15px;font-weight:600;margin-bottom:4px}
-.page-url{font-size:12px;color:#2563eb;text-decoration:none;word-break:break-all;opacity:.8}
-.page-url:hover{opacity:1;text-decoration:underline}
-.notes{display:flex;flex-direction:column;gap:12px}
-.note-row{display:flex;background:#fff;border:1px solid #e4e4e7;border-radius:10px;overflow:hidden;min-height:110px}
-.note-img{flex:0 0 220px;background:#f4f4f5;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.note-img img{width:100%;height:100%;object-fit:contain;display:block}
-.no-img{font-size:12px;color:#a1a1aa}
-.note-body{flex:1;padding:18px 22px;display:flex;gap:14px;align-items:flex-start}
-.note-num{flex:0 0 auto;width:21px;height:21px;background:#18181b;color:#fff;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
-.note-text{margin:0;font-size:14px;line-height:1.65;color:#18181b;white-space:pre-wrap;word-break:break-word}
-@media print{body{background:#fff}.report-header{border-color:#000}.note-row{break-inside:avoid;border-color:#ccc}}
+  body { margin: 0; padding: 40px 56px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111827; background: #fff; }
+  @media print { body { padding: 24px; } }
 </style>
 </head>
 <body>
-<header class="report-header">
-  <h1 class="report-title">Feedback Report</h1>
-  <p class="report-meta">${date} &nbsp;·&nbsp; ${total} ${total === 1 ? 'note' : 'notes'}</p>
-</header>
-<main class="report-body">
+<h1 style="font-size:22px;font-weight:700;margin:0 0 4px;"">Feedback Report</h1>
+<p style="margin:0 0 40px;font-size:13px;color:#6b7280;">${date} · ${total} ${total === 1 ? 'note' : 'notes'}</p>
 ${sections}
-</main>
 </body>
 </html>`;
   }

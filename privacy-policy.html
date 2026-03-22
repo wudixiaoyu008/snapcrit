@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Feedback Capture</title>
+  <style>
+    body {
+      max-width: 680px;
+      margin: 60px auto;
+      padding: 0 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #18181b;
+    }
+    h1 { font-size: 28px; font-weight: 700; margin: 0 0 6px; }
+    h2 { font-size: 17px; font-weight: 600; margin: 36px 0 8px; }
+    p, ul { margin: 0 0 16px; }
+    ul { padding-left: 20px; }
+    .meta { font-size: 14px; color: #71717a; margin-bottom: 40px; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Feedback Capture Chrome Extension &nbsp;·&nbsp; Last updated: March 2026</p>
+
+  <h2>Overview</h2>
+  <p>Feedback Capture is a local-only tool. It does not collect, transmit, or store any personal data on external servers. Everything stays on your device.</p>
+
+  <h2>What the extension does</h2>
+  <ul>
+    <li>Captures screenshots of selected elements or the visible page in your browser tab — only when you explicitly trigger it</li>
+    <li>Accepts notes you type, associated with those screenshots</li>
+    <li>Generates a local HTML report that you can download and share however you choose</li>
+  </ul>
+
+  <h2>Data storage</h2>
+  <ul>
+    <li><strong>Session storage only:</strong> Screenshots and notes are stored in <code>chrome.storage.session</code>, which is cleared automatically when you close Chrome or click Exit in the toolbar</li>
+    <li><strong>No cloud sync:</strong> Nothing is sent to any server, API, or third party</li>
+    <li><strong>No analytics:</strong> The extension does not track usage or behavior</li>
+    <li><strong>No accounts:</strong> No login, no profile, no identifiers</li>
+  </ul>
+
+  <h2>Permissions explained</h2>
+  <ul>
+    <li><strong>Access to all sites (<code>&lt;all_urls&gt;</code>):</strong> Required so the toolbar and element picker work on any URL — including localhost, staging, and production prototypes</li>
+    <li><strong>Tabs:</strong> Required to capture a screenshot of the visible browser tab when you select an element</li>
+    <li><strong>Storage:</strong> Used to hold your notes and screenshots temporarily within a session</li>
+    <li><strong>Scripting:</strong> Used to inject the toolbar UI into the page when you activate the extension</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <ul>
+    <li>We do not read the content of pages you visit outside of the element you explicitly select</li>
+    <li>We do not share any data with third parties</li>
+    <li>We do not use cookies or tracking pixels</li>
+    <li>We do not store anything after you exit the session</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>Questions or concerns? Open an issue on <a href="https://github.com/wudixiaoyu008/feedback-capture" target="_blank">GitHub</a>.</p>
+</body>
+</html>

@@ -531,7 +531,7 @@
         <tr>
           <td width="50%" style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
             ${n.screenshot
-              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" style="display:block;height:auto;" />`
+              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" width="100%" style="width:100%;height:auto;display:block;" />`
               : '<span style="font-size:12px;color:#9ca3af;">No capture</span>'}
           </td>
           <td width="50%" style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">
@@ -542,7 +542,7 @@
       return `
         <p style="margin:32px 0 6px;font-size:15px;font-weight:600;color:#111827;">${esc(title || 'Untitled Page')}</p>
         <p style="margin:0 0 12px;font-size:12px;color:#6b7280;">${esc(url)}</p>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:40px;">
+        <table width="100%" style="width:100%;table-layout:fixed;border-collapse:collapse;margin-bottom:40px;">
           ${rows}
         </table>`;
     }).join('');

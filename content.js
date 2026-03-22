@@ -524,7 +524,7 @@
         <tr>
           <td width="50%" style="width:50%;padding:12px;border:1px solid #d1d5db;vertical-align:top;background:#f9fafb;">
             ${n.screenshot
-              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" width="100%" style="max-width:100%;height:auto;display:block;" />`
+              ? `<img src="${n.screenshot}" alt="Capture ${i + 1}" width="300" style="width:300px;height:auto;display:block;" />`
               : '<span style="font-size:12px;color:#9ca3af;">No capture</span>'}
           </td>
           <td width="50%" style="width:50%;padding:16px;border:1px solid #d1d5db;vertical-align:top;font-size:14px;line-height:1.6;color:#111827;">

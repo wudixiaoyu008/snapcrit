@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate PNG icons for the Feedback Capture extension."""
+"""Generate PNG icons for the SnapCrit extension."""
 import struct, zlib
 
 BG    = (24, 24, 27, 255)    # #18181b
@@ -59,7 +59,7 @@ def icon_color(x, y, s):
 
     return color
 
-for size in [16, 48, 128]:
+for size in [16, 32, 48, 128]:
     data = make_png(size, lambda x, y, s=size: icon_color(x, y, s))
     path = f'icons/icon{size}.png'
     with open(path, 'wb') as f:

@@ -12,6 +12,8 @@ A lightweight Chrome extension for capturing design feedback during live prototy
 - **Clean export** — one-click HTML report with screenshots and notes side by side, grouped by URL
 - **No accounts, no sync** — everything stays in session storage until you export
 
+https://github.com/user-attachments/assets/92f8b4f9-31be-48a3-b4a0-0dcdb32dcfb3
+
 ---
 
 ## Usage
